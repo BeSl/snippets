@@ -1,11 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type Config struct {
@@ -20,28 +23,36 @@ type application struct {
 
 func main() {
 
-	cfg := new(Config)
-	flag.StringVar(&cfg.Addr, "addr", ":4000", "HTTP net address")
-	flag.StringVar(&cfg.StaticDir, "static-dir", "./ui/static", "Path to static files")
+	//addr := flag.String("addr", ":4000", "HTTP net address")
+	dsn := flag.String("dsn", "sql1111111:FFFFFFF@sql6.freemysqlhosting.net/sql111111", "Подключение к MySQL")
+
 	flag.Parse()
 
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	//infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
-	app := &application{
-		errorLog: errorLog,
-		infoLog:  infoLog,
+
+	db, err := openDB(*dsn)
+	if err != nil {
+		errorLog.Fatal(err)
 	}
 
-	srv := &http.Server{
-		Addr:     cfg.Addr,
-		ErrorLog: errorLog,
-		Handler:  app.routes(),
-	}
+	defer db.Close()
 
-	infoLog.Printf("Start server on port %s", cfg.Addr)
+	// app := &application{
+	// 	errorLog: errorLog,
+	// 	infoLog:  infoLog,
+	// }
 
-	err := srv.ListenAndServe()
-	errorLog.Fatal(err)
+	// srv := &http.Server{
+	// 	Addr:     *addr,
+	// 	ErrorLog: errorLog,
+	// 	Handler:  app.routes(),
+	// }
+
+	//infoLog.Printf("Start server on port %s", *addr)
+
+	//err := srv.ListenAndServe()
+	//errorLog.Fatal(err)
 
 }
 
@@ -68,4 +79,17 @@ func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
 
 	}
 	return f, nil
+}
+
+func openDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+	if err = db.Ping(); err != nil {
+		return nil, err
+	}
+
+	return db, nil
+
 }
