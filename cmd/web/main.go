@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"snippetbox/pkg/models/mysql"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -19,16 +20,17 @@ type Config struct {
 type application struct {
 	errorLog *log.Logger
 	infoLog  *log.Logger
+	snippets *mysql.SnippetModel
 }
 
 func main() {
 
-	//addr := flag.String("addr", ":4000", "HTTP net address")
+	addr := flag.String("addr", ":4000", "HTTP net address")
 	dsn := flag.String("dsn", "sql1111111:FFFFFFF@sql6.freemysqlhosting.net/sql111111", "Подключение к MySQL")
 
 	flag.Parse()
 
-	//infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	db, err := openDB(*dsn)
@@ -38,21 +40,21 @@ func main() {
 
 	defer db.Close()
 
-	// app := &application{
-	// 	errorLog: errorLog,
-	// 	infoLog:  infoLog,
-	// }
+	app := &application{
+		errorLog: errorLog,
+		infoLog:  infoLog,
+		snippets: &mysql.SnippetModel{DB: db},
+	}
 
-	// srv := &http.Server{
-	// 	Addr:     *addr,
-	// 	ErrorLog: errorLog,
-	// 	Handler:  app.routes(),
-	// }
+	srv := &http.Server{
+		Addr:     *addr,
+		ErrorLog: errorLog,
+		Handler:  app.routes(),
+	}
 
-	//infoLog.Printf("Start server on port %s", *addr)
-
-	//err := srv.ListenAndServe()
-	//errorLog.Fatal(err)
+	infoLog.Printf("Start server on port %s", *addr)
+	err := srv.ListenAndServe()
+	errorLog.Fatal(err)
 
 }
 
